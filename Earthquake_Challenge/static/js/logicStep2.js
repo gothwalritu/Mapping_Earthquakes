@@ -68,7 +68,6 @@ d3.json(earthquake).then(function(data) {
    
   console.log(data);
 
-
   L.geoJSON(data, {
 
 // We turn each feature into a circleMarker on the map.

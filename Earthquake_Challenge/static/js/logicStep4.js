@@ -19,13 +19,6 @@ attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap
     accessToken: API_KEY
 });
 
-
-// Create a base layer that holds both maps.
-let baseMaps = {
-  "Streets": streets,
-  "Satellite Streets": satelliteStreets
-};
-
 // Create the map object with center, zoom level and default layer.
 let map = L.map('mapid', {
   center: [39.5, -98.5],
@@ -33,22 +26,61 @@ let map = L.map('mapid', {
   layers: [streets]
 })
 
-// Pass our map layers into our layers control and add the layers control to the map.
-L.control.layers(baseMaps).addTo(map);
+// Create a base layer that holds both maps.
+let baseMaps = {
+  "Streets": streets,
+  "Satellite Streets": satelliteStreets
+};
 
+// Create the earthquake layer for our map.
+let earthquakes = new L.layerGroup();
+
+// We define an object that contains the overlays.
+// This overlay will be visible all the time.
+let overlays = {
+  Earthquakes: earthquakes
+};
+
+
+
+// Pass our map layers into our layers control and add the layers control to the map.
+// Then we add a control to the map that will allow the user to change
+// which layers are visible.
+L.control.layers(baseMaps, overlays).addTo(map);
 
 
 // Accessing the airport GeoJSON URL
 let earthquake = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
 // Grabbing our GeoJSON data.
 
+// This function determines the color of the circle based on the magnitude of the earthquake.
+function getColor(magnitude) {
+  if (magnitude > 5) {
+    return "#ea2c2c";
+  }
+  if (magnitude > 4) {
+    return "#ea822c";
+  }
+  if (magnitude > 3) {
+    return "#ee9c00";
+  }
+  if (magnitude > 2) {
+    return "#eecc00";
+  }
+  if (magnitude > 1) {
+    return "#d4ee00";
+  }
+  return "#98ee00";
+}
+
+
 function styleInfo(feature) {
   return {
     opacity: 1,
     fillOpacity: 1,
-    fillColor: "#ffae42",
+    fillColor:getColor(feature.properties.mag),
     color: "#000000",
-    radius: getRadius(),
+    radius:getRadius(feature.properties.mag),
     stroke: true,
     weight: 0.5
   };
@@ -63,11 +95,12 @@ function getRadius(magnitude) {
   return magnitude * 4;
 }
 
+
+
 // Grabbing our GeoJSON data.
 d3.json(earthquake).then(function(data) {
    
   console.log(data);
-
 
   L.geoJSON(data, {
 
@@ -79,10 +112,18 @@ d3.json(earthquake).then(function(data) {
   },
 
       // We set the style for each circleMarker using our styleInfo function.
-      style: styleInfo
+      style: styleInfo,
+
+      // We create a popup for each circleMarker to display the magnitude and
+      //  location of the earthquake after the marker has been created and styled.
+      onEachFeature: function(feature, layer) {
+        layer.bindPopup("Magnitude: " + feature.properties.mag + "<br>Location: " + feature.properties.place);
+      }
 
 
-}).addTo(map);
+}).addTo(earthquakes);
+
+  earthquakes.addTo(map);
 
 });
 
